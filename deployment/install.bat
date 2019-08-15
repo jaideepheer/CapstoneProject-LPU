@@ -11,4 +11,7 @@ conda env create -f kapstone.yml
 conda activate kapstone
 ipython kernel install --user --name=kapstone-kernel
 
+pip install cmake
+pip install dlib
+
 echo Environment setup done.

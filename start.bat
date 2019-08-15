@@ -2,6 +2,7 @@
 cd %~dp0deployment
 
 if exist OK_DO_NOT_DELETE (
+    activate kapstone
     echo Starting Jupyter lab...
     cd ../Code/
     jupyter lab --config='../deployment/jupyter/jupyter_notebook_config.py'

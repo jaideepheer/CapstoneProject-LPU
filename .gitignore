@@ -1,0 +1,4 @@
+deployment/OK_DO_NOT_DELETE
+**/.vscode/**
+**/__pycache__/**
+Code/emotion_detect/**
