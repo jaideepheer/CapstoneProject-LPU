@@ -1,8 +1,17 @@
+from abc import ABC, abstractmethod
+from utils.typedefs import BoundingBox_twopoint
+from utils.image_utils import dlibrect_to_BoundingBox_twopoint
+
 import cv2
 import numpy as np
 import dlib
 
-class face_detector_cascade:
+class face_detector(ABC):
+    @abstractmethod
+    def getFaceBoundingBox(self, image: np.ndarray) -> BoundingBox_twopoint:
+        pass
+
+class face_detector_cascade(face_detector):
     def __init__(self, cascadeXMLFilePath='./resources/face_detectors/facedetect_haarcascade_frontalface_default.xml'):
         if(not(type(cascadeXMLFilePath) is str)):
             raise TypeError("face_extractor constructor was sent invalid argument. 'cv2Mode' must be string.")
@@ -10,8 +19,8 @@ class face_detector_cascade:
         open(cascadeXMLFilePath,'r').close()
         self.face_cascade = cv2.CascadeClassifier(cascadeXMLFilePath)
     
-    def getFaceBoxLocation(self, imageArray):
-        # Returns the (top, left, bottom, right) positions of
+    def getFaceBoundingBox(self, imageArray: np.ndarray) -> BoundingBox_twopoint:
+        # Returns the (left, top, right, bottom) positions of
         #   the bounding box around the largest area face found.
         # If no face is found, it returns the (0,0,0,0) box positions.
         gray = cv2.cvtColor(imageArray, cv2.COLOR_BGR2GRAY)
@@ -23,9 +32,9 @@ class face_detector_cascade:
                 largest = (x,y,w,h)
         # return largest face's bounding box co-ordinates
         (x,y,w,h) = largest
-        return (x,y,x+w,y+h)
+        return BoundingBox_twopoint(x,y,x+w,y+h)
 
-class face_detector_dnn:
+class face_detector_dnn(face_detector):
     def __init__(self, dnnModelFile="./resources/face_detectors/facedetect_dnn_res10_300x300_ssd_iter_140000_fp16.caffemodel", dnnConfigFile="./resources/face_detectors/facedetect_dnn_deploy.prototxt", confidenceThreshold = .6, ignoreOutOfBoundDetections=True):
         # check files
         open(dnnConfigFile,'r').close()
@@ -34,8 +43,8 @@ class face_detector_dnn:
         self.confidenceThreshold = confidenceThreshold
         self.ignoreOutOfBoundDetections = ignoreOutOfBoundDetections
     
-    def getFaceBoxLocation(self, imageArray):
-        # Returns the (top, left, bottom, right) positions of
+    def getFaceBoundingBox(self, imageArray: np.ndarray) -> BoundingBox_twopoint:
+        # Returns the (left, top, right, bottom) positions of
         #   the bounding box around the largest area face found.
         # If no face is found, it returns the (0,0,0,0) box positions.
         height, width, channels = imageArray.shape[0:3]
@@ -58,24 +67,24 @@ class face_detector_dnn:
         for i in largest:
             if(i>1):
                 if self.ignoreOutOfBoundDetections:
-                    return (0,0,0,0)
+                    return BoundingBox_twopoint(0,0,0,0)
                 else:
                     # try to normalise detections
                     largest *= 1.0/max(largest)
                     largest = largest.tolist()
                     break
-        return (int(largest[0] * width), int(largest[1] * height), int(largest[2] * width), int(largest[3] * height))
+        return BoundingBox_twopoint(int(largest[0] * width), int(largest[1] * height), int(largest[2] * width), int(largest[3] * height))
 
-class face_detector_dlib:
+class face_detector_dlib(face_detector):
     def __init__(self):
         self.model = dlib.get_frontal_face_detector()
     
-    def getFaceBoxLocation(self, imageArray, upscaling_layers=1):
-        # Returns the [(top, left), (bottom, right)] positions of
+    def getFaceBoundingBox(self, image: np.ndarray, upscaling_layers: int=1) -> BoundingBox_twopoint:
+        # Returns the (top, left, bottom, right) positions of
         #   the bounding box around the largest area face found.
         # If no face is found, it returns the (0,0,0,0) box positions.
-        rects = self.model(imageArray, upscaling_layers)
+        rects = self.model(image, upscaling_layers)
         if(len(rects)>0):
-            return rects[0]
+            return dlibrect_to_BoundingBox_twopoint(rects[0])
         else:
-            return dlib.rectangle(0,0,0,0)
+            return BoundingBox_twopoint(0,0,0,0)

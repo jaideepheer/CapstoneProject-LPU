@@ -1,5 +1,6 @@
 import dlib
 import numpy as np
+from utils.image_utils import BoundingBox_twopoint_to_dlibrect
 
 class face_feature_extractor_dlib68:
     def __init__(self, dlib68_faceshape_predictor_path="./resources/face_feature_extractors/dlib_68_point/shape_predictor_68_face_landmarks.dat"):
@@ -7,6 +8,7 @@ class face_feature_extractor_dlib68:
         self.tempfacedetect = dlib.get_frontal_face_detector()
 
     def getFaceFeaturePoints(self, imageData, faceRect):
+        faceRect = BoundingBox_twopoint_to_dlibrect(faceRect)
         return self.shape_to_np(self.model(imageData,faceRect))
     
     def shape_to_np(self, shape, dtype=int):
