@@ -8,25 +8,14 @@ from cv2 import waitKey, destroyAllWindows, imshow, destroyWindow
 import functools
 import time
 
-def printStatistics(passThrough: PushPipe.PassThrough) -> float:
-    print("Frame Statistics")
-    print("Timings:")
-    total = 0
-    for X in passThrough.getExtrasHistory():
-        print(X['Pipe_Type'],'-->', X['Profile.Process_Time'])
-        total += X['Profile.Process_Time']
-    print('Total Time:', total)
-    return total
-
-def showImage_int(winName, result, image, error, passThrough: PushPipe.PassThrough, profile: PushPipe.PipeProfile):
+def showImage_internal(winName, result, image, error, passThrough: PushPipe.PassThrough, profile: PushPipe.PipeProfile):
     if(result == PushPipe.Result.SUCCESS):
         imshow(winName, image)
     else: 
         print(error)
         destroyWindow(winName)
-    #print("[%s] Average Time taken: %f sec"%(winName,profile.total_process_time/profile.process_call_count))
 def showImage(winName):
-    return functools.partial(showImage_int, winName)
+    return functools.partial(showImage_internal, winName)
 
 if(False):
     from emotion.emotion_detect_pipes import EmotionExtractorOArriagaPipe

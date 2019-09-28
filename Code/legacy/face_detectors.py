@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
-from utils.typedefs import BoundingBox_twopoint
-from utils.image_utils import dlibrect_to_BoundingBox_twopoint
+from ..utils.typedefs import BoundingBox_twopoint
+from .image_utils import dlibrect_to_BoundingBox_twopoint
 
 import cv2
 import numpy as np

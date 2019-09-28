@@ -1,5 +1,5 @@
 from dlib import rectangle as dlib_rectangle
-from utils.typedefs import BoundingBox_onepoint, BoundingBox_twopoint
+from ..utils.typedefs import BoundingBox_onepoint, BoundingBox_twopoint
 
 def dlibrect_to_BoundingBox_onepoint(rect: dlib_rectangle) -> BoundingBox_onepoint:
 	# take a bounding box and convert it

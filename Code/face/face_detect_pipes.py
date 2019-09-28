@@ -1,8 +1,6 @@
 from pipedefs.pipe import PushPipe
-from utils.typedefs import Image_Type
+from utils.typedefs import Image_Type, BoundingBox_twopoint
 from cv2 import CascadeClassifier, cvtColor, COLOR_BGR2GRAY, dnn, resize
-from utils.typedefs import BoundingBox_twopoint
-from utils.image_utils import dlibrect_to_BoundingBox_twopoint
 from abc import abstractmethod
 import dlib
 class FaceExtractorPipe(PushPipe[Image_Type, Image_Type]):
@@ -26,7 +24,7 @@ class FaceExtractorDLibPipe(FaceExtractorPipe):
         rects = self.model(image, self.upscaling_layers)
         if(len(rects)>0):
             rect = rects[0]
-            return dlibrect_to_BoundingBox_twopoint(rect)
+            return BoundingBox_twopoint(rect.left(), rect.top(), rect.right(), rect.bottom())
         else:
             # no faces found, won't push forward
             self.setErrored("No face found.")

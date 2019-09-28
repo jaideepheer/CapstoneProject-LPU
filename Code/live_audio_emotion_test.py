@@ -1,5 +1,5 @@
-from audio.audio_frame_generators import audioframe_gen_live
-from audio.audio_emotion_extractors import *
+from legacy.audio_frame_generators import audioframe_gen_live
+from legacy.audio_emotion_extractors import *
 # test
 emo_map=["neutral","calm","happy","sad","angry", "fearful", "disgust", "surprised"]
 print("begin test")

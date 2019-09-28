@@ -2,3 +2,4 @@ emotion_detect/**
 .mypy_cache/**
 pyrightconfig.json
 .vscode/**
+**/__pycache__/**

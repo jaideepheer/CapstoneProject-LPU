@@ -1,7 +1,7 @@
 from keras.models import load_model
 import numpy as np
 import librosa
-from audio.audio_frame_generators import *
+from .audio_frame_generators import *
 def audioframe_emotion_gen(audioframe_gen, audio_emotion_extractor):
     try:
         for rate, audioframe in audioframe_gen:

@@ -27,22 +27,3 @@ def playaudio(audiodata,RATE=48000, CHUNK_size=1024, format=pyaudio.paFloat32, c
     stream.stop_stream()
     stream.close()
     audio.terminate()
-
-
-from utils.typedefs import AudioRecording, AudioMetadata
-from audio.audio_pipes import AudioPlaybackPipe
-from pipedefs.on_demand_pipes import OnDemandAudioRecordPipe
-from pipedefs.pipe import PushPipe
-
-R = OnDemandAudioRecordPipe(AudioMetadata())
-while(True):
-    D = R.push(None, PushPipe.PassThrough()).getCurrentExtras()['Process_Output'].data
-    print(D)
-    playaudio(D)
-
-exit()
-gen = audioframe_gen_live()
-P = AudioPlaybackPipe()
-for a,d in gen:
-    D = AudioRecording(METADATA=AudioMetadata(),data=d)
-    P.push(D,PassThrough=PushPipe.PassThrough())
