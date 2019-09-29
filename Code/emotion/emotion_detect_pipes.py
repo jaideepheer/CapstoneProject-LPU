@@ -20,6 +20,7 @@ class EmotionExtractorSarengilPipe(PushPipe[Image_Type, Emotions_Type]):
         predictions = Emotions_Type(*self.model.predict(img_pixels).tolist()[0])
         return predictions
 
+# Better Pipe
 class EmotionExtractorOArriagaPipe(PushPipe[Image_Type, Emotions_Type]):
     def __init__(self, kerasModelPath="./resources/oarriaaga/fer2013_mini_XCEPTION.107-0.66.hdf5", postProcessCallback=None):
         super().__init__(postProcessCallback=postProcessCallback)

@@ -4,25 +4,25 @@ from sys import stdout
 from pipedefs.pipe_utils import PipeLineProfilingWrapper
 from audio.audio_pipes import AudioPlaybackPipe, AudioToTextSphinxPipe
 from pipedefs.pipe import PushPipe
-from cv2 import waitKey, destroyAllWindows, imshow, destroyWindow
+from cv2 import waitKey, destroyAllWindows, imshow, destroyWindow, cvtColor, COLOR_RGB2BGR
 import functools
 import time
 
 def showImage_internal(winName, result, image, error, passThrough: PushPipe.PassThrough, profile: PushPipe.PipeProfile):
     if(result == PushPipe.Result.SUCCESS):
-        imshow(winName, image)
+        imshow(winName, cvtColor(image,COLOR_RGB2BGR))
     else: 
         print(error)
         destroyWindow(winName)
 def showImage(winName):
     return functools.partial(showImage_internal, winName)
 
-if(False):
+if(True):
     from emotion.emotion_detect_pipes import EmotionExtractorOArriagaPipe
-    from face.face_detect_pipes import FaceExtractorDNNPipe
+    from face.face_detect_pipes import FaceExtractorMTCNNPipe, FaceExtractorDNNPipe
     pipeline = OnDemandPhotoClickPipe(postProcessCallback=showImage("clicker_callback")).connect(
         FaceExtractorDNNPipe(postProcessCallback=showImage("face_DNN_callback")).connect(
-            EmotionExtractorOArriagaPipe()
+            #EmotionExtractorOArriagaPipe()
         )
     )
 else:
@@ -39,7 +39,7 @@ while(True):
     print("Loop Time: %f [%d FPS]"%(loopTime,1//loopTime))
     loopTime = time.time()
     result: PushPipe.PassThrough = pipeline.push(None, PushPipe.PassThrough())
-    print(result.getExtrasHistory()[-1]['Process_Output'])
+    #print(result.getExtrasHistory()[-1]['Process_Output'])
     print('====================================')
     if waitKey(1) & 0xFF == ord('q'):
         break

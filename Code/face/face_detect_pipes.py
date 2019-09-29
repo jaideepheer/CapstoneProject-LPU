@@ -1,7 +1,8 @@
 from pipedefs.pipe import PushPipe
 from utils.typedefs import Image_Type, BoundingBox_twopoint
-from cv2 import CascadeClassifier, cvtColor, COLOR_BGR2GRAY, dnn, resize
+from cv2 import CascadeClassifier, cvtColor, COLOR_RGB2GRAY, dnn, resize
 from abc import abstractmethod
+from mtcnn.mtcnn import MTCNN
 import dlib
 class FaceExtractorPipe(PushPipe[Image_Type, Image_Type]):
     def process(self, image, passThrough):
@@ -15,6 +16,21 @@ class FaceExtractorPipe(PushPipe[Image_Type, Image_Type]):
     @abstractmethod
     def getFaceBB(self, image: Image_Type, passThrough: PushPipe.PassThrough) -> BoundingBox_twopoint:
         pass
+
+class FaceExtractorMTCNNPipe(FaceExtractorPipe):
+    def __init__(self, weights_file=None, min_face_size=20, steps_threshold=None, scale_factor=0.709, postProcessCallback=None):
+        super().__init__(postProcessCallback)
+        self.cnn = MTCNN(weights_file, min_face_size, steps_threshold, scale_factor)
+    def getFaceBB(self, image: Image_Type, passThrough: PushPipe.PassThrough) -> Image_Type:
+        face_bb = self.cnn.detect_faces(image)
+        if(len(face_bb)>0):
+            face_bb = max(face_bb, key=lambda item: item['confidence'])['box']
+            (x,y,w,h) = face_bb
+            return BoundingBox_twopoint(x,y,x+w,y+h)
+        else:
+            # no faces found, won't push forward
+            self.setErrored("No face found.")
+        return image
 class FaceExtractorDLibPipe(FaceExtractorPipe):
     def __init__(self, upscaling_layers: int=1, postProcessCallback=None):
         super().__init__(postProcessCallback=postProcessCallback)
@@ -37,7 +53,7 @@ class FaceExtractorCascadePipe(FaceExtractorPipe):
         open(cascadeXMLFilePath,'r').close()
         self.face_cascade = CascadeClassifier(cascadeXMLFilePath)
     def getFaceBB(self, image: Image_Type, passThrough: PushPipe.PassThrough) -> Image_Type:
-        gray = cvtColor(image, COLOR_BGR2GRAY)
+        gray = cvtColor(image, COLOR_RGB2GRAY)
         faces = self.face_cascade.detectMultiScale(gray, 1.3, 5)
         if(len(faces)>0):
             # get largest face
@@ -53,6 +69,9 @@ class FaceExtractorCascadePipe(FaceExtractorPipe):
             self.setErrored("No face found.")
         return image
 
+'''
+NOTE: This network works on BGR Images so the 2nd last boolean to swap red and blue channels in `dnn.blobFromImage` is set to true to convert standard RGB to BGR.
+'''
 class FaceExtractorDNNPipe(FaceExtractorPipe):
     def __init__(self, dnnModelFile="./resources/face_detectors/facedetect_dnn_res10_300x300_ssd_iter_140000_fp16.caffemodel", dnnConfigFile="./resources/face_detectors/facedetect_dnn_deploy.prototxt", confidenceThreshold = .6, postProcessCallback=None):
         super().__init__(postProcessCallback=postProcessCallback)
@@ -64,7 +83,7 @@ class FaceExtractorDNNPipe(FaceExtractorPipe):
     def getFaceBB(self, image: Image_Type, passThrough: PushPipe.PassThrough) -> Image_Type:
         height, width, channels = image.shape[0:3]
         assert channels == 3
-        blob = dnn.blobFromImage(resize(image, (300,300)), 1.0, (300, 300), [104, 117, 123], False, False)
+        blob = dnn.blobFromImage(resize(image, (300,300)), 1.0, (300, 300), [104, 117, 123], True, False)
         self.net.setInput(blob)
         detections = self.net.forward()
         # get largest face

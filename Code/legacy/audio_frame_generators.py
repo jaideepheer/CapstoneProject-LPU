@@ -10,7 +10,7 @@ def audioframe_gen_live(seconds=3, RATE=48000, CHUNK_size=1024, format=pyaudio.p
     try:
         while(True):
             data=b""
-            for i in range(iters):
+            for _ in range(iters):
                 data += stream.read(CHUNK_size)
             stream.stop_stream()
             yield (RATE, data)
