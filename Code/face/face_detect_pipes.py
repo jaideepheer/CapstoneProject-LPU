@@ -1,4 +1,4 @@
-from pipedefs.pipe import PushPipe
+from pipedefs.core_pipes import PushPipe
 from utils.typedefs import Image_Type, BoundingBox_twopoint
 from cv2 import CascadeClassifier, cvtColor, COLOR_RGB2GRAY, dnn, resize
 from abc import abstractmethod
@@ -110,3 +110,5 @@ class FaceExtractorDNNPipe(FaceExtractorPipe):
             rect = BoundingBox_twopoint(*largest)
             return rect
         return image
+    def __del__(self):
+        del self.net

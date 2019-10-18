@@ -1,6 +1,21 @@
-from .pipe import PushPipe
+from .core_pipes import PushPipe
 from typing import TextIO
 import time
+
+def printPassThroughStatistics(passThrough: PushPipe.PassThrough, outputStream: TextIO):
+    totalTime = time.time()
+    processTime = 0.0
+    # Frame statistics
+    outputStream.write("Frame Statistics\n")
+    outputStream.write("Timings:\n")
+    for X in passThrough.getExtrasHistory():
+        pipe: PushPipe = X['Pipe_Reference']
+        outputStream.write('%s --> %f [Avg: %f]\n'%(X['Pipe_Type'], X['Profile.Process_Time'], pipe.profile.total_process_time/pipe.profile.process_call_count))
+        processTime += X['Profile.Process_Time']
+    outputStream.writelines([
+            'Process Time: %f\n'%processTime
+        ])
+    outputStream.write('Profiling Time: %f\n'%(time.time()-totalTime))
 class PipeLineProfilingWrapper():
     def __init__(self, pipeline: PushPipe, outputStream: TextIO):
         self.pipeline = pipeline
@@ -29,5 +44,3 @@ class PipeLineProfilingWrapper():
         ])
         self.out.write('Profiling Time: %f\n'%(time.time()-totalTime-pushTime))
         return retVal
-    def process(self, data, passThrough):
-        return None

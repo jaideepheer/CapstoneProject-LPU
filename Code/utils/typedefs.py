@@ -18,7 +18,7 @@ class PyAudioFormat_Type(IntEnum):
 class AudioMetadata:
     length: int = 3
     Rate: int = 16000
-    Chunk_Size: int = 2048
+    Chunk_Size: int = 512
     Channels: int = 1
     Format: PyAudioFormat_Type = paInt16
     def getFormatByteSize(self):
@@ -33,6 +33,13 @@ class AudioMetadata:
 class AudioRecording:
     METADATA: AudioMetadata
     data: ByteString
+
+@dataclass
+class TextSentimentVader:
+    positive: float
+    negative: float
+    neutral: float
+    compound: float
 
 # (left, top, width, height)
 BoundingBox_onepoint = NamedTuple('BoundingBox_onepoint',[('left',int), ('top',int), ('width',int), ('height',int)])

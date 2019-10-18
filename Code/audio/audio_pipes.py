@@ -1,8 +1,8 @@
 from pyaudio import PyAudio
-from pipedefs.pipe import PushPipe
-from utils.typedefs import AudioRecording
+from pipedefs.core_pipes import PushPipe
+from utils.typedefs import AudioRecording, AudioMetadata
 from speech_recognition import AudioData, Recognizer, UnknownValueError
-import numpy as np
+import os, ffmpeg, numpy as np
 from dataclasses import dataclass
 import deepspeech
 
@@ -32,7 +32,7 @@ class AudioToTextDeepSpeechPipe(PushPipe[AudioRecording, str]):
         LM_WEIGHT: float = 1.5
         # The beta hyperparameter of the CTC decoder. Word insertion bonus.
         VALID_WORD_COUNT_WEIGHT: float = 2.25
-    def __init__(self, model_pb_path: str, alphabet_path: str, beam_width: int = 512, language_model: LanguageModel_Config = None,  postProcessCallback=None):
+    def __init__(self, model_pb_path: str = './resources/deep_speech/output_graph.pb', alphabet_path: str = './resources/deep_speech/alphabet.txt', beam_width: int = 512, language_model: LanguageModel_Config = LanguageModel_Config('./resources/deep_speech/lm.binary', './resources/deep_speech/trie'),  postProcessCallback=None):
         super().__init__(postProcessCallback=postProcessCallback)
         self.model = deepspeech.Model(model_pb_path, alphabet_path, beam_width)
         if(language_model is not None):
@@ -44,9 +44,7 @@ class AudioToTextDeepSpeechPipe(PushPipe[AudioRecording, str]):
         data = np.frombuffer(recording.data, np.int16)
         padding = (self.beam_width - (data.shape[0]%self.beam_width))%self.beam_width
         data = np.pad(data, (0, padding), 'constant')
-        print("Total:",data.shape)
         data = np.split(data, self.beam_width)
-        print('Data:',len(data),data[0].shape,data[-1].shape)
         # feed samples to stream
         for frame in data:
             self.model.feedAudioContent(self.stream_state, frame)
@@ -64,3 +62,27 @@ class AudioToTextSphinxPipe(PushPipe[AudioRecording,str]):
         except UnknownValueError:
             self.setErrored("Couldn't identify speech.")
             return ''
+
+class OnDemandAudioFrameExtractor(PushPipe[None, AudioRecording]):
+    def __init__(self, filePath: str, config: AudioMetadata, ffmpeg_executable_path=os.path.abspath('./resources/ffmpeg/ffmpeg.exe'), ffprobe_executable_path="./resources/ffmpeg/ffprobe.exe", postProcessCallback=None):
+        super().__init__(postProcessCallback=postProcessCallback)
+        self.ffmpeg = ffmpeg_executable_path
+        self.ffprobe = ffprobe_executable_path
+        self.config = config
+        probe = ffmpeg.probe(filePath, cmd=self.ffprobe)
+        audio_stream = next((stream for stream in probe['streams'] if stream['codec_type'] == 'audio'), None)
+        self.sample_rate = int(audio_stream['sample_rate'])
+        self.total_length = int(float(probe['format']['duration']))
+        self.ffmpeg_process = (
+            ffmpeg
+            .input(filePath)
+            .output('pipe:', format='s16le', acodec='pcm_s16le', ac=1, ar=config.Rate)
+            .run_async(pipe_stdout=True, cmd=self.ffmpeg)
+        )
+    def process(self, data: None, passThrough: PushPipe.PassThrough) -> AudioRecording:
+        in_bytes = self.ffmpeg_process.stdout.read(self.config.getFormatByteSize()*self.config.Rate*self.config.length)
+        if(not in_bytes):
+            passThrough.getGlobals()['Audio_EOF'] = True
+            self.setErrored("Audio stream ended.")
+            return AudioRecording(AudioMetadata(),b'')
+        return AudioRecording(AudioMetadata(), np.frombuffer(in_bytes, np.uint8))
