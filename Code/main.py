@@ -1,7 +1,14 @@
-from easygui import choicebox, fileopenbox, ynbox
+from easygui import fileopenbox
+from gui.custom_subclasses import ynbox, choicebox
 from video.video_utils import saveVideoThumbnail
+from utils.gui_util import centerWindow
 from utils.memory_util import clearGPUMemory
+from utils.typedefs import VideoReport, AudioReport
 import tempfile
+from workers import VideoWorker, AudioWorker
+from gui.tkinter.processing_windows import VideoProcessingWindow, AudioProcessingWindow
+from gui.tkinter.final_report_window import ReportWindow
+import tkinter as tk
 
 # render main menu
 def mainMenu():
@@ -52,9 +59,6 @@ There are two types of processing available, video and audio.
         return choice
 
 # perform both processing based on the mode selected by user
-from workers import VideoWorker, AudioWorker
-from gui.tkinter.processing_windows import VideoProcessingWindow, AudioProcessingWindow
-import tkinter as tk
 def processFile(filePath, mode):
     # calc flags
     doVideo = False
@@ -65,10 +69,14 @@ def processFile(filePath, mode):
     elif mode == "Video Only": doVideo = True
     elif mode == "Audio Only": doAudio = True
 
-    result = []
+    vidReport = None
+    audReport = None
 
     if doVideo:
         vidGUI = tk.Tk()
+        vidGUI.title("Video Processing")
+        vidGUI.geometry("1024x600")
+        centerWindow(vidGUI)
         vidWorker = VideoWorker(filePath,VideoProcessingWindow(vidGUI))
         # construct video processing pipeline
         print("Creating video processing worker...")
@@ -88,9 +96,20 @@ def processFile(filePath, mode):
         print("Video worker terminated.")
         # GPU memory must be cleared by the main thread
         clearGPUMemory()
-        result.append(vidWorker.getFinalResult())
+        res = vidWorker.getFinalResult()
+        vidReport = VideoReport(
+            res.get('OverallEmotionChart', None),
+            res.get('DominantEmotionFaceFrame', None),
+            res.get('DominantEmotionFrame', None),
+            res.get('DominantEmotion', 'None'),
+            res.get('Total_Frames_Processed', -1),
+            res.get('FramesWithFace', 0)
+        )
     if doAudio:
         audioGUI = tk.Tk()
+        audioGUI.title("Audio Processing")
+        audioGUI.geometry("1024x600")
+        centerWindow(audioGUI)
         audioWorker = AudioWorker(filePath,AudioProcessingWindow(audioGUI))
         # construct audio processing pipeline
         print("Creating audio processing worker...")
@@ -103,8 +122,23 @@ def processFile(filePath, mode):
         print("Audio worker terminated.")
         # GPU memory must be cleared by the main thread
         clearGPUMemory()
-        result.append(audioWorker.getFinalResult())
-    return doAudio, doVideo, result
+        res = audioWorker.getFinalResult()
+        audReport = AudioReport(
+            res.get('WordCountChart', None),
+            res.get('SentimentChart', None),
+            res.get('Total_WordCount', 0),
+            res.get('TotalTimeProcessed', 0),
+            res.get('WordsPerSecond', 0)
+        )
+    return vidReport, audReport
+
+def showReport(vidReport, audReport):
+    root = tk.Tk()
+    win = ReportWindow(root, audReport, vidReport)
+    root.geometry("1024x600")
+    centerWindow(root)
+    root.mainloop()
+    return win.didUserChooseExit()
 
 # handle gui controll flow
 def run():
@@ -140,14 +174,14 @@ def run():
                 run_func = processFile
                 args = [local_vars['filepath'],retval]
         elif run_func is processFile:
-            audioDone, videoDone, result = retval
-            if videoDone:
-                local_vars['video_result'] = result[0]
-            if audioDone:
-                local_vars['audio_result'] = result[-1]
-            print("All processing done.")
-            print(local_vars)
-            break
+            run_func = showReport
+            args = retval
+        elif run_func is showReport:
+            if retval:
+                print("Exiting.")
+                break # user selected to exit from report window
+            else:
+                run_func = mainMenu
         else:
             #TODO: show gui error
             break

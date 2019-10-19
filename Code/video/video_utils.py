@@ -1,5 +1,4 @@
 from utils.typedefs import Image_Type
-from os import system
 import ffmpeg, numpy as np
 def getVideoThumbnail(videoFilePath, position=0.05, ffmpeg_executable_path='./resources/ffmpeg/ffmpeg.exe', ffprobe_executable_path="./resources/ffmpeg/ffprobe.exe") -> Image_Type:
     # get video info

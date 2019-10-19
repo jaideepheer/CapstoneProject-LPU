@@ -1,18 +1,14 @@
 from gui.tkinter.processing_windows import VideoProcessingWindow
+from gui.tkinter.final_report_window import ReportWindow
+from utils.gui_util import centerWindow
+from utils.typedefs import AudioReport, VideoReport
 import tkinter as tk
 from cv2 import imread, cvtColor, COLOR_BGR2RGB
 import threading
 import time
 
-def func(delay):
-    while(True):
-        time.sleep(delay)
-        print("sending data thread:", threading.get_ident())
-        v.refreshProcessingData(img,img.copy(),img.copy())
-
 root = tk.Tk()
-v = VideoProcessingWindow(root, lambda:print("Paused"), lambda:print("Resumed"), lambda:print("Abort"))
-img = cvtColor(imread("C:/Users/hp/Pictures/im.png"),COLOR_BGR2RGB)
-v.refreshProcessingData(img,img.copy(),img.copy())
-threading.Thread(target=func, args = (4,)).start()
+r = ReportWindow(root,AudioReport(),VideoReport())
+root.geometry("1024x600")
+centerWindow(root)
 root.mainloop()

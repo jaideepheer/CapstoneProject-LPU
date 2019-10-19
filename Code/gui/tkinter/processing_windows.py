@@ -1,9 +1,6 @@
 import tkinter as tk
 from tkinter import messagebox as tk_msgbox
-from PIL import Image, ImageTk
-from utils.typedefs import Image_Type
-from math import floor
-from typing import List
+from gui.custom_subclasses import ResizableCanvas
 
 class ProcessingWindow:
     def __init__(self, master: tk.Tk, pauseCallback=lambda:None, resumeCallback=lambda:None, abortCallback=lambda:None):
@@ -11,7 +8,6 @@ class ProcessingWindow:
         self.pauseCallback = pauseCallback
         self.resumeCallback = resumeCallback
         self.abortCallback = abortCallback
-        self.__resized_images = []
         self.data = None
         self.kwdata = None
 
@@ -59,35 +55,6 @@ class ProcessingWindow:
     def doGracefullShutdown(self):
         self.master.event_generate("<<GracefullShutdown>>", when="tail")
     
-    def reRenderCanvases(self, canvasList: List[tk.Canvas], imagesList: List[Image_Type]):
-        # update all canvas to get size
-        if imagesList == None or canvasList == None:
-            print('reRenderCanvases was sent None argument.')
-            return
-        self.__resized_images.clear()
-        canvas_size = [(c.winfo_width(), c.winfo_height()) for c in canvasList]
-        # resize images to appropriate sizes
-        for i in range(min(len(canvasList),len(imagesList))):
-            if imagesList[i] is None: continue
-            img = Image.fromarray(imagesList[i])
-            fit_size = self._getImageFitSize(canvas_size[i], img.size)
-            img = ImageTk.PhotoImage(img.resize(fit_size, Image.BICUBIC))
-            # save images to self to prevent garbage collection
-            self.__resized_images.append(img)
-            # put images in canvas
-            canvasList[i].delete("IMG")
-            canvasList[i].create_image(canvas_size[i][0]//2, canvas_size[i][1]//2,image=img,tags="IMG", anchor=tk.CENTER)
-    
-    def _getImageFitSize(self, maxSize: tuple, curSize: tuple):
-        ratio = curSize[0]/curSize[1]
-        w, h = maxSize
-        if w//ratio <= h:
-            # max width fits
-            return (w, floor(w/ratio))
-        else:
-            # max height fits
-            return (floor(h*ratio), h)
-
 class VideoProcessingWindow(ProcessingWindow):
     def __init__(self, master: tk.Tk, pauseCallback=lambda:None, resumeCallback=lambda:None, abortCallback=lambda:None):
         super().__init__(master, pauseCallback, resumeCallback, abortCallback)
@@ -98,7 +65,7 @@ class VideoProcessingWindow(ProcessingWindow):
         self.frame.grid(sticky=fillStick)
 
         # Fill internal frame
-        self.canvasList = [tk.Canvas(self.frame, background="#dde0da") for i in range(3)]
+        self.canvasList = [ResizableCanvas(self.frame, background="#dde0da") for i in range(3)]
         self.canvasList[0].grid(row=1, column=0, sticky=fillStick)
         self.canvasList[1].grid(row=0, column=0, columnspan=2, sticky=fillStick)
         self.canvasList[2].grid(row=1, column=1, rowspan=2, sticky=fillStick)
@@ -109,14 +76,9 @@ class VideoProcessingWindow(ProcessingWindow):
         self.frame.rowconfigure(0, weight=3)
         self.frame.rowconfigure(1, weight=1)
 
-        # bind resize and processing update handlers
-        self.frame.bind("<Configure>", 
-            lambda e:
-                self.reRenderCanvases(self.canvasList, self.data)
-            )
+        # bind processing update handler
         master.bind("<<RefreshProcessingData>>", 
-            lambda e:
-                self.reRenderCanvases(self.canvasList, self.data)
+            lambda e: [self.canvasList[i].setImage(self.data[i]) for i in range(min(len(self.canvasList), len(self.data)))]
             )
 
         self.pause_button_text = tk.StringVar(self.frame, value="Pause")
@@ -151,7 +113,7 @@ class AudioProcessingWindow(ProcessingWindow):
         self.frame.grid(sticky=fillStick)
 
         # Fill internal frame
-        self.canvasList = [tk.Canvas(self.frame, background="#dde0da") for i in range(2)]
+        self.canvasList = [ResizableCanvas(self.frame, background="#dde0da") for i in range(2)]
         self.canvasList[0].grid(row=0, sticky=fillStick)
         self.canvasList[1].grid(row=1, sticky=fillStick)
 
@@ -160,14 +122,9 @@ class AudioProcessingWindow(ProcessingWindow):
         self.frame.rowconfigure(0, weight=1)
         self.frame.rowconfigure(1, weight=1)
 
-        # bind resize and processing update handlers
-        self.frame.bind("<Configure>", 
-            lambda e:
-                self.reRenderCanvases(self.canvasList, self.data[2:])
-            )
+        # bind processing update handler
         master.bind("<<RefreshProcessingData>>", 
-            lambda e:
-                self.reRenderCanvases(self.canvasList, self.data[2:])
+            lambda e: [self.canvasList[i].setImage(self.data[i]) for i in range(min(len(self.canvasList), len(self.data)))]
             )
 
         self.pause_button_text = tk.StringVar(self.frame, value="Pause")
