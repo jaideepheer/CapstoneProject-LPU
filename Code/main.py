@@ -42,8 +42,8 @@ def processFileModeSelect(filePath):
         msg="""
 There are two types of processing available, video and audio.
 
- - Video processing finds expressional sentiment using the video frames of the file.
- - Audio processing finds the contextual sentiment using the text transcript extracted from the audio data of the file. It also calculates the approximate total word count and presents a bar chart for the number of words spoken with respect to time.
+ - Video processing analyses expressional sentiment using the video frames of the file.
+ - Audio processing analyses the contextual sentiment using the text transcript extracted from the audio data of the file. It also calculates the approximate total word count and presents a bar chart for the number of words spoken with respect to time.
         Please choose the processing mode.""",
         title="Choose Processing Mode",
         choices=[
@@ -134,6 +134,7 @@ def processFile(filePath, mode):
 
 def showReport(vidReport, audReport):
     root = tk.Tk()
+    root.title("Final Result")
     win = ReportWindow(root, audReport, vidReport)
     root.geometry("1024x600")
     centerWindow(root)
