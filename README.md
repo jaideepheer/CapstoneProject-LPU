@@ -1,3 +1,7 @@
+# Program Output
+
+See the [./doc/](./doc/) folder
+
 # Setup environment
 - First install Anaconda form [> this link <](https://www.anaconda.com/distribution/).
 
